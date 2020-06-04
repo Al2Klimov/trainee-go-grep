@@ -12,22 +12,39 @@ import (
 	"regexp"
 )
 
+type arrayFlags []string
+
+func (*arrayFlags) String() string {
+	return ""
+}
+
+func (i *arrayFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 func main() {
-	patternParameter := flag.String("e", "", "use PATTERN for matching.")
+	var flagTest arrayFlags
+	flag.Var(&flagTest, "e", "use PATTERN for matching.")
 	flag.Parse()
 
-	if *patternParameter == "" {
+	if len(flagTest) == 0 {
 		fmt.Fprintln(os.Stderr, "grep: at least the -e parameter is needed.")
 		os.Exit(1)
 	}
 
-	re, regErr := regexp.Compile(*patternParameter)
-	if regErr != nil {
-		fmt.Fprintln(os.Stderr, regErr)
-		os.Exit(1)
-	}
-
 	buf := bufio.NewReader(os.Stdin)
+	var regArr []*regexp.Regexp
+
+	for _, i := range flagTest {
+		re, regErr := regexp.Compile(i)
+		if regErr != nil {
+			fmt.Fprintln(os.Stderr, regErr)
+			os.Exit(1)
+		}
+
+		regArr = append(regArr, re)
+	}
 
 	for {
 		data, dataErr := buf.ReadBytes('\n')
@@ -40,11 +57,14 @@ func main() {
 			break
 		}
 
-		if re.Match(data) {
-			if !bytes.HasSuffix(data, []byte{'\n'}) {
-				data = append(data, '\n')
+		for _, i := range regArr {
+			if i.Match(data) {
+				if !bytes.HasSuffix(data, []byte{'\n'}) {
+					data = append(data, '\n')
+				}
+				_, _ = os.Stdout.Write(data)
+				break
 			}
-			_, _ = os.Stdout.Write(data)
 		}
 
 		if dataErr == io.EOF {
