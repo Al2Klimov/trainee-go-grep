@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 )
 
 type arrayFlags []string
@@ -25,7 +26,9 @@ func (i *arrayFlags) Set(value string) error {
 
 func main() {
 	var flagTest arrayFlags
+	equalComparator := false
 	flag.Var(&flagTest, "e", "use PATTERN for matching.")
+	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
@@ -36,14 +39,15 @@ func main() {
 	buf := bufio.NewReader(os.Stdin)
 	var regArr []*regexp.Regexp
 
-	for _, i := range flagTest {
-		re, regErr := regexp.Compile(i)
-		if regErr != nil {
-			fmt.Fprintln(os.Stderr, regErr)
-			os.Exit(1)
+	if !*fixedStringsParameter {
+		for _, i := range flagTest {
+			re, regErr := regexp.Compile(i)
+			if regErr != nil {
+				fmt.Fprintln(os.Stderr, regErr)
+				os.Exit(1)
+			}
+			regArr = append(regArr, re)
 		}
-
-		regArr = append(regArr, re)
 	}
 
 	for {
@@ -57,14 +61,28 @@ func main() {
 			break
 		}
 
-		for _, i := range regArr {
-			if i.Match(data) {
-				if !bytes.HasSuffix(data, []byte{'\n'}) {
-					data = append(data, '\n')
+		if *fixedStringsParameter {
+			for _, i := range flagTest {
+				if strings.Contains(string(data), i) {
+					equalComparator = true
+					break
 				}
-				_, _ = os.Stdout.Write(data)
-				break
 			}
+		} else {
+			for _, i := range regArr {
+				if i.Match(data) {
+					equalComparator = true
+					break
+				}
+			}
+		}
+
+		if equalComparator {
+			if !bytes.HasSuffix(data, []byte{'\n'}) {
+				data = append(data, '\n')
+			}
+			_, _ = os.Stdout.Write(data)
+			equalComparator = false
 		}
 
 		if dataErr == io.EOF {
