@@ -28,6 +28,7 @@ func main() {
 	var flagTest arrayFlags
 	equalComparator := false
 	flag.Var(&flagTest, "e", "use PATTERN for matching.")
+	nInvertParameter := flag.Bool("v", false, "use PATTERN as non-matching lines.")
 	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string")
 	flag.Parse()
 
@@ -51,6 +52,7 @@ func main() {
 	}
 
 	for {
+		equalComparator = false
 		data, dataErr := buf.ReadBytes('\n')
 		if dataErr != nil && dataErr != io.EOF {
 			fmt.Fprintln(os.Stderr, dataErr)
@@ -77,12 +79,11 @@ func main() {
 			}
 		}
 
-		if equalComparator {
+		if equalComparator != *nInvertParameter {
 			if !bytes.HasSuffix(data, []byte{'\n'}) {
 				data = append(data, '\n')
 			}
 			_, _ = os.Stdout.Write(data)
-			equalComparator = false
 		}
 
 		if dataErr == io.EOF {
