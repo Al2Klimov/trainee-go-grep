@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strings"
 )
 
 type arrayFlags []string
@@ -29,7 +28,8 @@ func main() {
 	equalComparator := false
 	flag.Var(&flagTest, "e", "use PATTERN for matching.")
 	nInvertParameter := flag.Bool("v", false, "use PATTERN as non-matching lines.")
-	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string")
+	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string.")
+	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
@@ -40,15 +40,25 @@ func main() {
 	buf := bufio.NewReader(os.Stdin)
 	var regArr []*regexp.Regexp
 
-	if !*fixedStringsParameter {
-		for _, i := range flagTest {
-			re, regErr := regexp.Compile(i)
-			if regErr != nil {
-				fmt.Fprintln(os.Stderr, regErr)
-				os.Exit(1)
-			}
-			regArr = append(regArr, re)
+	if *fixedStringsParameter {
+		for i := range flagTest {
+			flagTest[i] = regexp.QuoteMeta(flagTest[i])
 		}
+	}
+
+	if *wordsParameter {
+		for i := range flagTest {
+			flagTest[i] = "\\b(" + flagTest[i] + ")\\b"
+		}
+	}
+
+	for _, i := range flagTest {
+		re, regErr := regexp.Compile(i)
+		if regErr != nil {
+			fmt.Fprintln(os.Stderr, regErr)
+			os.Exit(1)
+		}
+		regArr = append(regArr, re)
 	}
 
 	for {
@@ -63,19 +73,10 @@ func main() {
 			break
 		}
 
-		if *fixedStringsParameter {
-			for _, i := range flagTest {
-				if strings.Contains(string(data), i) {
-					equalComparator = true
-					break
-				}
-			}
-		} else {
-			for _, i := range regArr {
-				if i.Match(data) {
-					equalComparator = true
-					break
-				}
+		for _, i := range regArr {
+			if i.Match(data) {
+				equalComparator = true
+				break
 			}
 		}
 
