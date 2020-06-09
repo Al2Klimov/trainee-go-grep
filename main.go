@@ -31,6 +31,7 @@ func main() {
 	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string.")
 	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
 	linesParameter := flag.Bool("x", false, "use PATTERN that only matches whole lines.")
+	ignoreCaseParameter := flag.Bool("i", false, "ignore case distinctions")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
@@ -56,6 +57,12 @@ func main() {
 	if *linesParameter {
 		for i := range flagTest {
 			flagTest[i] = "(?m:^(" + flagTest[i] + ")$)"
+		}
+	}
+
+	if *ignoreCaseParameter {
+		for i := range flagTest {
+			flagTest[i] = "(?i)" + flagTest[i]
 		}
 	}
 
