@@ -30,6 +30,7 @@ func main() {
 	nInvertParameter := flag.Bool("v", false, "use PATTERN as non-matching lines.")
 	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string.")
 	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
+	linesParameter := flag.Bool("x", false, "use PATTERN that only matches whole lines.")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
@@ -49,6 +50,12 @@ func main() {
 	if *wordsParameter {
 		for i := range flagTest {
 			flagTest[i] = "\\b(" + flagTest[i] + ")\\b"
+		}
+	}
+
+	if *linesParameter {
+		for i := range flagTest {
+			flagTest[i] = "(?m:^(" + flagTest[i] + ")$)"
 		}
 	}
 
