@@ -25,6 +25,7 @@ func (i *arrayFlags) Set(value string) error {
 
 func main() {
 	var flagTest arrayFlags
+	var counter int
 	equalComparator := false
 	flag.Var(&flagTest, "e", "use PATTERN for matching.")
 	nInvertParameter := flag.Bool("v", false, "use PATTERN as non-matching lines.")
@@ -32,6 +33,7 @@ func main() {
 	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
 	linesParameter := flag.Bool("x", false, "use PATTERN that only matches whole lines.")
 	ignoreCaseParameter := flag.Bool("i", false, "ignore case distinctions")
+	maxCountParameter := flag.Int("m", -1, "stop after NUM selected lines.")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
@@ -94,11 +96,16 @@ func main() {
 			}
 		}
 
+		if *maxCountParameter != -1 && counter == *maxCountParameter {
+			break
+		}
+
 		if equalComparator != *nInvertParameter {
 			if !bytes.HasSuffix(data, []byte{'\n'}) {
 				data = append(data, '\n')
 			}
 			_, _ = os.Stdout.Write(data)
+			counter++
 		}
 
 		if dataErr == io.EOF {
