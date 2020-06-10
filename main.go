@@ -23,27 +23,25 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
+var match bool
+var regArr []*regexp.Regexp
+var nInvertParameter = flag.Bool("v", false, "use PATTERN as non-matching lines.")
+var quietParameter = flag.Bool("q", false, "suppress all normal output")
+var maxCountParameter = flag.Int("m", -1, "stop after NUM selected lines.")
+
 func main() {
 	var flagTest arrayFlags
-	var counter int
-	equalComparator := false
 	flag.Var(&flagTest, "e", "use PATTERN for matching.")
-	nInvertParameter := flag.Bool("v", false, "use PATTERN as non-matching lines.")
 	fixedStringsParameter := flag.Bool("F", false, "use PATTERN not as a regular expression but as a string.")
 	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
 	linesParameter := flag.Bool("x", false, "use PATTERN that only matches whole lines.")
 	ignoreCaseParameter := flag.Bool("i", false, "ignore case distinctions")
-	quietParameter := flag.Bool("q", false, "suppress all normal output")
-	maxCountParameter := flag.Int("m", -1, "stop after NUM selected lines.")
 	flag.Parse()
 
 	if len(flagTest) == 0 {
 		fmt.Fprintln(os.Stderr, "grep: at least the -e parameter is needed.")
 		os.Exit(2)
 	}
-
-	buf := bufio.NewReader(os.Stdin)
-	var regArr []*regexp.Regexp
 
 	if *fixedStringsParameter {
 		for i := range flagTest {
@@ -78,6 +76,35 @@ func main() {
 		regArr = append(regArr, re)
 	}
 
+	if len(flag.Args()) == 0 {
+		compareAndPrint(os.Stdin)
+	} else {
+		for _, fileName := range flag.Args() {
+			if fileName == "-" {
+				compareAndPrint(os.Stdin)
+			} else {
+				file, fileErr := os.Open(fileName)
+				if fileErr != nil {
+					fmt.Fprintln(os.Stderr, fileErr)
+					os.Exit(2)
+				}
+
+				compareAndPrint(file)
+				file.Close()
+			}
+		}
+	}
+
+	if !match {
+		os.Exit(1)
+	}
+}
+
+func compareAndPrint(file *os.File) {
+	counter := 0
+	equalComparator := false
+	buf := bufio.NewReader(file)
+
 	for {
 		equalComparator = false
 		data, dataErr := buf.ReadBytes('\n')
@@ -105,7 +132,13 @@ func main() {
 			if !bytes.HasSuffix(data, []byte{'\n'}) {
 				data = append(data, '\n')
 			}
+
+			match = true
+
 			if !*quietParameter {
+				if len(flag.Args()) > 1 {
+					fmt.Printf("%s:", file.Name())
+				}
 				_, _ = os.Stdout.Write(data)
 			}
 			counter++
@@ -114,9 +147,5 @@ func main() {
 		if dataErr == io.EOF {
 			break
 		}
-	}
-
-	if counter <= 0 {
-		os.Exit(1)
 	}
 }
