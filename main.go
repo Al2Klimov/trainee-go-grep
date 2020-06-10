@@ -38,7 +38,7 @@ func main() {
 
 	if len(flagTest) == 0 {
 		fmt.Fprintln(os.Stderr, "grep: at least the -e parameter is needed.")
-		os.Exit(1)
+		os.Exit(2)
 	}
 
 	buf := bufio.NewReader(os.Stdin)
@@ -72,7 +72,7 @@ func main() {
 		re, regErr := regexp.Compile(i)
 		if regErr != nil {
 			fmt.Fprintln(os.Stderr, regErr)
-			os.Exit(1)
+			os.Exit(2)
 		}
 		regArr = append(regArr, re)
 	}
@@ -82,7 +82,7 @@ func main() {
 		data, dataErr := buf.ReadBytes('\n')
 		if dataErr != nil && dataErr != io.EOF {
 			fmt.Fprintln(os.Stderr, dataErr)
-			os.Exit(1)
+			os.Exit(2)
 		}
 
 		if len(data) == 0 {
@@ -111,5 +111,9 @@ func main() {
 		if dataErr == io.EOF {
 			break
 		}
+	}
+
+	if counter <= 0 {
+		os.Exit(1)
 	}
 }
