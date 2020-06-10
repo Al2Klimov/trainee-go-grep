@@ -33,6 +33,7 @@ func main() {
 	wordsParameter := flag.Bool("w", false, "use PATTERN that only matches words.")
 	linesParameter := flag.Bool("x", false, "use PATTERN that only matches whole lines.")
 	ignoreCaseParameter := flag.Bool("i", false, "ignore case distinctions")
+	quietParameter := flag.Bool("q", false, "suppress all normal output")
 	maxCountParameter := flag.Int("m", -1, "stop after NUM selected lines.")
 	flag.Parse()
 
@@ -104,7 +105,9 @@ func main() {
 			if !bytes.HasSuffix(data, []byte{'\n'}) {
 				data = append(data, '\n')
 			}
-			_, _ = os.Stdout.Write(data)
+			if !*quietParameter {
+				_, _ = os.Stdout.Write(data)
+			}
 			counter++
 		}
 
