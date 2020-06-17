@@ -28,6 +28,7 @@ var regArr []*regexp.Regexp
 var nInvertParameter = flag.Bool("v", false, "use PATTERN as non-matching lines.")
 var quietParameter = flag.Bool("q", false, "suppress all normal output")
 var maxCountParameter = flag.Int("m", -1, "stop after NUM selected lines.")
+var lineNumberParameter = flag.Bool("n", false, "print line number.")
 
 func main() {
 	var flagTest arrayFlags
@@ -102,6 +103,7 @@ func main() {
 
 func compareAndPrint(file *os.File) {
 	counter := 0
+	lineCount := 1
 	equalComparator := false
 	buf := bufio.NewReader(file)
 
@@ -139,6 +141,9 @@ func compareAndPrint(file *os.File) {
 				if len(flag.Args()) > 1 {
 					fmt.Printf("%s:", file.Name())
 				}
+				if *lineNumberParameter {
+					fmt.Printf("%d:", lineCount)
+				}
 				_, _ = os.Stdout.Write(data)
 			}
 			counter++
@@ -147,5 +152,6 @@ func compareAndPrint(file *os.File) {
 		if dataErr == io.EOF {
 			break
 		}
+		lineCount++
 	}
 }
