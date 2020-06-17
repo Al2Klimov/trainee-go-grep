@@ -8,8 +8,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 )
 
 type arrayFlags []string
@@ -29,6 +31,7 @@ var nInvertParameter = flag.Bool("v", false, "use PATTERN as non-matching lines.
 var quietParameter = flag.Bool("q", false, "suppress all normal output")
 var maxCountParameter = flag.Int("m", -1, "stop after NUM selected lines.")
 var lineNumberParameter = flag.Bool("n", false, "print line number.")
+var recursiveParameter = flag.Bool("r", false, "search PATTERN in a directory.")
 
 func main() {
 	var flagTest arrayFlags
@@ -77,7 +80,15 @@ func main() {
 		regArr = append(regArr, re)
 	}
 
-	if len(flag.Args()) == 0 {
+	if *recursiveParameter {
+		if len(flag.Args()) < 1 {
+			recursiveSearch(".")
+		} else {
+			for _, dirName := range flag.Args() {
+				recursiveSearch(dirName)
+			}
+		}
+	} else if len(flag.Args()) == 0 {
 		compareAndPrint(os.Stdin)
 	} else {
 		for _, fileName := range flag.Args() {
@@ -138,7 +149,7 @@ func compareAndPrint(file *os.File) {
 			match = true
 
 			if !*quietParameter {
-				if len(flag.Args()) > 1 {
+				if len(flag.Args()) > 1 || *recursiveParameter {
 					fmt.Printf("%s:", file.Name())
 				}
 				if *lineNumberParameter {
@@ -153,5 +164,32 @@ func compareAndPrint(file *os.File) {
 			break
 		}
 		lineCount++
+	}
+}
+
+func recursiveSearch(dirName string) {
+	if !strings.HasSuffix(dirName, "/") {
+		dirName += "/"
+	}
+
+	fileInfo, readDirErr := ioutil.ReadDir(dirName)
+	if readDirErr != nil {
+		fmt.Fprintln(os.Stderr, readDirErr)
+		os.Exit(2)
+	}
+
+	for _, fileInfoName := range fileInfo {
+		if fileInfoName.IsDir() {
+			recursiveSearch(dirName + fileInfoName.Name() + "/")
+		} else {
+			file, fileErr := os.Open(dirName + fileInfoName.Name())
+			if fileErr != nil {
+				fmt.Fprintln(os.Stderr, fileErr)
+				os.Exit(2)
+			}
+
+			compareAndPrint(file)
+			file.Close()
+		}
 	}
 }
